@@ -3,7 +3,6 @@
     .vscode
     # Virtual environments
     venv/
-    pienv\
     pienv/
     pienv
     .env/
@@ -11,4 +10,6 @@
     .env*/
     *.pkl
     *.pyc
+    models/
+    src/models/
 
