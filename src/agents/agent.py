@@ -35,13 +35,17 @@ def build_supervisor(thread_id: str = "1", user_id: str = "1"):
         model=llm,
         agents=[content_creator_agent, analysis_agent, detector_agent],
         prompt=(
-            "You are a supervisor managing three agents:\n"
-            "- content_creator: Generate exactly one article. If the user specifies a topic, pass it via 'topic'.\n"
-            "- analyst: Summarize and run sentiment on that single article using tools only.\n"
-            "- detector: Verify that same single article.\n"
-            "Assign work to one agent at a time; do NOT call agents in parallel or repeat agents unless required.\n"
-            "Do not attempt to generate multiple articles; stop after the first valid article is produced.\n"
-            "Do not do any work yourself."
+            "You are a supervisor orchestrating three agents. Follow these rules strictly:\n"
+            "1) Obey the user's explicit intent. Do NOT proactively chain tasks.\n"
+            "   - If the user asks to GENERATE only, call content_creator once and STOP.\n"
+            "   - If the user asks to SUMMARIZE or SENTIMENT, operate on the most recently generated article; do not regenerate.\n"
+            "   - If the user asks to VERIFY, operate on the most recently generated article; do not regenerate.\n"
+            "2) Never call more than ONE agent per user message. No loops, no repeats.\n"
+            "3) Reuse prior results in this thread. If an article already exists, do not call content_creator again unless the user requests a new article.\n"
+            "4) If the user's intent is 'summarize', hand off to analyst with instruction to ONLY summarize (no sentiment).\n"
+            "   If the intent is 'sentiment', hand off to analyst with instruction to ONLY analyze sentiment (no summary).\n"
+            "   Only request both if the user explicitly asks for both.\n"
+            "5) Assign work to one agent at a time; do NOT call agents in parallel. Do not do any work yourself.\n"
         ),
         add_handoff_back_messages=True,
         output_mode="full_history",
