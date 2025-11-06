@@ -5,7 +5,6 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
 try:
     # Prefer user's import style if available
     from langgraph_supervisor import create_supervisor  # type: ignore
@@ -13,61 +12,18 @@ except ImportError:  # fallback for environments without `langgraph_supervisor`
     from langgraph.prebuilt import create_supervisor  # type: ignore
 from langgraph.checkpoint.memory import InMemorySaver
 
-# Import tools
-from utils.tools import (
-    generate_news_article,
-    summarize_text,
-    analyze_sentiment,
-    ml_predict_news,
-    web_search_verify,
-)
+# Import per-agent factories
+from src.agents.content_creator_agent import create_content_creator_agent
+from src.agents.analyst_agent import create_analyst_agent
+from src.agents.detector_agent import create_detector_agent
 
 # Shared LLM
 llm = ChatOpenAI(model="gpt-4o-mini")
 
-# Content Creator agent
-content_creator_agent = create_react_agent(
-    llm,
-    tools=[generate_news_article],
-    prompt=(
-        "You are a content creation agent.\n\n"
-        "INSTRUCTIONS:\n"
-        "- Generate EXACTLY ONE article by calling generate_news_article ONCE.\n"
-        "- If the user specifies a topic, pass it via the 'topic' argument; otherwise leave it empty.\n"
-        "- Do NOT call the tool multiple times to search for better outputs. One call only.\n"
-        "- After you're done, respond to the supervisor directly with ONLY the tool JSON."
-    ),
-    name="content_creator",
-)
-
-# Analysis agent (summarization + sentiment)
-analysis_agent = create_react_agent(
-    llm,
-    tools=[summarize_text, analyze_sentiment],
-    prompt=(
-        "You are an analysis agent for summarization and sentiment.\n\n"
-        "INSTRUCTIONS:\n"
-        "- You MUST use tools, not free-form replies.\n"
-        "- Given an article {title, text}, call summarize_text once, then analyze_sentiment once.\n"
-        "- Return a compact JSON with keys: summary, sentiment (the tool outputs). No extra prose."
-    ),
-    name="analyst",
-)
-
-# News detection agent (fake news detection)
-detector_agent = create_react_agent(
-    llm,
-    tools=[ml_predict_news, web_search_verify],
-    prompt=(
-        "You are a verification agent that detects fake news.\n\n"
-        "INSTRUCTIONS:\n"
-        "- Operate on ONE article ({title, subject, date, text}).\n"
-        "- Call ml_predict_news exactly once. If confidence < 85%, optionally call web_search_verify once.\n"
-        "- Return a JSON: { prediction, confidence, method, optionally: verified, source_url, reasoning }.\n"
-        "- No extra prose."
-    ),
-    name="detector",
-)
+# Instantiate agents
+content_creator_agent = create_content_creator_agent(llm)
+analysis_agent = create_analyst_agent(llm)
+detector_agent = create_detector_agent(llm)
 
 # Supervisor graph
 checkpointer = InMemorySaver()
@@ -78,7 +34,7 @@ def build_supervisor(thread_id: str = "1", user_id: str = "1"):
     supervisor = create_supervisor(
         model=llm,
         agents=[content_creator_agent, analysis_agent, detector_agent],
-prompt=(
+        prompt=(
             "You are a supervisor managing three agents:\n"
             "- content_creator: Generate exactly one article. If the user specifies a topic, pass it via 'topic'.\n"
             "- analyst: Summarize and run sentiment on that single article using tools only.\n"
