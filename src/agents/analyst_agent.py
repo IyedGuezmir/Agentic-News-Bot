@@ -49,8 +49,11 @@ def create_analyst_agent(llm: ChatOpenAI):
             "You are an analysis agent for summarization and sentiment.\n\n"
             "INSTRUCTIONS:\n"
             "- You MUST use tools, not free-form replies.\n"
-            "- Given an article {title, text}, call summarize_text once, then analyze_sentiment once.\n"
-            "- Return a compact JSON with keys: summary, sentiment (the tool outputs). No extra prose."
+            "- Perform EXACTLY the requested operation and nothing else.\n"
+            "  * If instructed to summarize, call summarize_text once.\n"
+            "  * If instructed to analyze sentiment, call analyze_sentiment once.\n"
+            "  * Only call both if explicitly asked for both in the same turn.\n"
+            "- Return only the tool result(s) as compact JSON. No extra prose."
         ),
         name="analyst",
     )
