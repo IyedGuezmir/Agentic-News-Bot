@@ -17,8 +17,17 @@ class GraphRAGSystem:
             graph=self.graph,
             verbose=True,
             validate_cypher=True,
+            return_intermediate_steps=True,
             allow_dangerous_requests=True
         )
+    def retrieve(self, question: str):
+        """
+        Run NL -> Cypher -> Neo4j and return the raw graph/context,
+        """
+        out = self.chain.invoke({"query": question})
+        # `out` typically has: {"result": "...", "intermediate_steps": ...}
+        # We ignore `result` and only expose the context.
+        return out.get("intermediate_steps", out)
 
     def query(self, query_text):
         return self.chain.invoke({"query": query_text})
