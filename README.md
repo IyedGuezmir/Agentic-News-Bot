@@ -125,19 +125,25 @@ The fake news detection system uses a hybrid approach that combines classic ML, 
 4. **Final Decision**: If web verification finds credible sources, the article is marked as True News; otherwise, the ML model prediction is used.
 
 ### Multi-Agent Supervisor + RAG (`streamlit_app.py`)
-- A LangGraph **supervisor** (`src/agents/agent.py`) orchestrates several agents:
-  - `content_creator` – generates news articles.
-  - `analyst` – summarizes articles or analyzes sentiment.
-  - `detector` – runs ML + LLM-based fake-news verification.
-  - `hybrid_rag` – answers questions over the CSV news corpus using `HybridRAGSystem`.
-  - `graph_rag` – answers relationship/entity questions using `GraphRAGSystem` over Neo4j.
-- The supervisor decides which agent to call per user message based on intent (generate, summarize, sentiment, verify, RAG QA, etc.).
+
+Beyond the standalone Flask module, the project exposes a full **agentic workflow** via `streamlit_app.py`:
+- A LangGraph **supervisor** (`src/agents/agent.py`) routes each user message to exactly one specialized agent:
+  - `content_creator` – generates a single news article given a subject/date.
+  - `analyst` – either **summarizes** the most recent article or **analyzes sentiment/tone**.
+  - `detector` – performs fake-news detection by combining the ML model and an LLM-based web credibility check.
+  - `hybrid_rag` – answers corpus-style questions over the CSV news dataset using `HybridRAGSystem` (dense + BM25 + reranker).
+  - `graph_rag` – answers relationship/entity questions over a Neo4j news graph using `GraphRAGSystem`.
+- This lets you run a full workflow in one conversation:
+  1. **Generate** an article.
+  2. **Summarize** or **analyze sentiment**.
+  3. **Verify** authenticity.
+  4. Ask broader **RAG questions** about patterns, entities, or history in the corpus/graph.
 
 ### Key Components
 - **Sentence Transformers** (`all-MiniLM-L6-v2`): For semantic text embeddings.
 - **Pre-trained ML Classifier**: For initial fake-news prediction.
-- **LangChain + OpenAI GPT-4o-mini**: For web verification, analysis, and RAG reasoning.
-- **Hybrid Decision Logic**: Combines ML predictions, web verification, and RAG context for richer explanations.
+- **LangChain + OpenAI GPT-4o-mini**: For content creation, analysis, verification, and RAG reasoning.
+- **Hybrid Decision Logic**: Combines ML predictions, web verification, and RAG context across the whole agentic workflow.
 
 ## 🤝 Contributing
 
