@@ -36,16 +36,17 @@ def hybrid_rag_qa(question: str) -> dict:
 def graph_rag_qa(question: str) -> dict:
     """
     Answer questions using the Neo4j Graph RAG pipeline.
-    Returns answer and intermediate graph steps.
+    Returns answer plus the Cypher and rows used.
     """
-    result = _graph_rag.query(question)
-    # GraphRAGSystem.query currently returns whatever GraphCypherQAChain returns,
-    # typically a dict with "result" and "intermediate_steps".
+    ctx = _graph_rag.retrieve(question)
+    answer = _graph_rag.query(question)
+
     return {
         "type": "graph_rag",
         "question": question,
-        "answer": result.get("result", result),
-        "raw": result,
+        "answer": answer,
+        "cypher": ctx["cypher"],
+        "rows": ctx["rows"],
     }
 
 
