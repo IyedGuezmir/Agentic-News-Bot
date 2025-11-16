@@ -4,7 +4,11 @@ from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_community.graphs import Neo4jGraph
 from langchain_openai import ChatOpenAI
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from dotenv import load_dotenv
+from typing import List, Optional
+from langchain_core.documents import Document
 
 load_dotenv()
 
@@ -30,3 +34,17 @@ def add_documents(csv_path, doc_limit=None):
     )
     graph.add_graph_documents(graph_docs, include_source=True, baseEntityLabel=True)
     print("[ADD DOCS] Documents added to Neo4j.")
+
+
+
+
+def load_true_news_docs(
+    file_path: str = "src/data/News_dataset/True.csv",
+    limit: Optional[int] = 3,
+) -> List[Document]:
+    loader = CSVLoader(file_path=file_path, encoding="utf-8")
+    docs = loader.load()
+    if limit is not None:
+        docs = docs[:limit]
+    return docs
+# Adjust path and limit as needed
