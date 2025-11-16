@@ -34,8 +34,7 @@ def generate_news_article(subject: str, date: str) -> dict:
         format_instructions = parser.get_format_instructions()
 
         system = (
-            "You are a professional news writer. Write realistic short news. "
-            "Choose the label randomly as 'real' or 'fake' with roughly 50/50 frequency."
+            "You are a professional news writer. Write realistic and engaging news. "
         )
         prompt = ChatPromptTemplate.from_messages([
             ("system", system),
