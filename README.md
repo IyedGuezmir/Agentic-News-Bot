@@ -8,26 +8,32 @@ A personalized press agent powered by AI, featuring news generation, fake news d
 - **Fake News Detection**: ML-powered detection to identify unreliable news articles
 - **Press Conference Simulator**: Interactive press conference simulation system
 
-> **Note**: At the moment This repository currently contains the complete fake news detection implementation. Other features (news generation and press conference simulator) are yet to be integrated .
+> **Note**: At the moment This repository currently dosen't contain the Press Conference Simulator. The feature is yet to be implemented .
 
 ## 📁 Project Structure
 
-```
+```bash
 Agentic-News-Bot/
-├── app.py                          # Main Flask application
+├── app.py                          # Flask app: classic fake-news detection API
+├── streamlit_app.py                # Streamlit chat UI (multi-agent supervisor)
 ├── requirements.txt                # Python dependencies
 ├── .env                            # Environment variables (not tracked)
 ├── .gitignore                      # Git ignore rules
 │
 ├── architecture/                   # Project setup and documentation
-│   └── project-structure-script.sh # Script to generate project structure
+│   └── project-structure-script.sh # Script to generate base project structure
 │
 ├── notebooks/                      # Jupyter notebooks for exploration
 │   └── fake-news-detection.ipynb  # Fake news detection analysis
 │
 ├── src/                            # Source code
-│   ├── agents/                     # AI agents
-│   │   └── news_prediction_agent.py
+│   ├── agents/                     # AI agents + LangGraph supervisor
+│   │   ├── agent.py                # Supervisor graph & routing rules
+│   │   ├── content_creator_agent.py # Article generation agent
+│   │   ├── analyst_agent.py        # Summarization / sentiment agent
+│   │   ├── detector_agent.py       # Fake-news verification agent (ML + LLM)
+│   │   ├── rag_agents.py           # Hybrid RAG + Graph RAG agents/tools
+│   │   └── news_prediction_agent.py# Classic ML prediction agent for app.py
 │   │
 │   ├── data/                       # Datasets
 │   │   └── News_dataset/
@@ -35,7 +41,12 @@ Agentic-News-Bot/
 │   │       └── True.csv            # True news samples
 │   │
 │   ├── embeddings/                 # Text embedding models
-│   │   └── embed_model.py
+│   │   └── embed_model.py          # SentenceTransformer wrapper (all-MiniLM)
+│   │
+│   ├── rag/                        # RAG components (hybrid + graph)
+│   │   ├── ensemble_retriever.py   # Dense + BM25 RRF-style ensemble
+│   │   ├── hybrid_rag_system.py    # HybridRAGSystem over CSV news corpus
+│   │   └── graph_rag_system.py     # GraphRAGSystem over Neo4j (Cypher + QA)
 │   │
 │   └── models/                     # Trained ML models
 │       ├── best_model.pkl          # Best performing model
@@ -45,15 +56,19 @@ Agentic-News-Bot/
 │       └── embedding_model/        # Pre-trained sentence transformer
 │
 ├── templates/                      # HTML templates
-│   └── index.html                  # Web interface
+│   └── index.html                  # Web interface for app.py
 │
-├── tests/                          # Test files
-│   └── news_prediction.py          # Prediction tests
+├── tests/                          # Test and evaluation scripts
+│   ├── news_prediction.py          # Classic ML prediction smoke test
+│   ├── supervisor_test.py          # LangGraph supervisor end-to-end trace
+│   ├── rag_test_eval.py            # Graph RAG + ragas evaluation
+│   └── hybrid_rag_test_eval.py     # Hybrid RAG + ragas evaluation
 │
-└── utils/                          # Utility functions
+└── utils/                          # Utility functions and tools
     ├── data_preprocessing.py       # Data cleaning and preprocessing
-    ├── data_validation.py          # Input validation
-    ├── simulation_helpers.py       # Simulation utilities
+    ├── data_validation.py          # Pydantic schemas (NewsItem, Verification)
+    ├── simulation_helpers.py       # Synthetic news generator via LLM
+    ├── tools.py                    # LangChain tools (content/analysis/verify)
     └── train_and_save_model.py     # Model training pipeline
 ```
 
@@ -101,19 +116,28 @@ The application will be available at `http://localhost:5000`
 
 ## 🧠 Fake News Detection
 
-The fake news detection system uses a hybrid approach:
+The fake news detection system uses a hybrid approach that combines classic ML, LLM verification, and optional RAG-based context.
 
-### Agent Workflow
-1. **Text Embedding**: News articles are converted to semantic embeddings using `all-MiniLM-L6-v2` Sentence Transformer
-2. **ML Prediction**: Pre-trained classifier predicts if the news is fake or true with confidence score
-3. **Web Verification**: LLM (GPT-4) with web search tools verifies the news against credible online sources
-4. **Final Decision**: If web verification finds credible sources, marks as True News; otherwise, defers to ML model prediction
+### Classic ML + Web Verification (`app.py`)
+1. **Text Embedding**: News articles are converted to semantic embeddings using a SentenceTransformer (`all-MiniLM-L6-v2`) via `src/embeddings/embed_model.py`.
+2. **ML Prediction**: A pre-trained logistic regression classifier predicts if the news is fake or true with a confidence score.
+3. **Web Verification**: An LLM (`gpt-4o-mini`) verifies the news against online sources and returns a structured verdict.
+4. **Final Decision**: If web verification finds credible sources, the article is marked as True News; otherwise, the ML model prediction is used.
+
+### Multi-Agent Supervisor + RAG (`streamlit_app.py`)
+- A LangGraph **supervisor** (`src/agents/agent.py`) orchestrates several agents:
+  - `content_creator` – generates news articles.
+  - `analyst` – summarizes articles or analyzes sentiment.
+  - `detector` – runs ML + LLM-based fake-news verification.
+  - `hybrid_rag` – answers questions over the CSV news corpus using `HybridRAGSystem`.
+  - `graph_rag` – answers relationship/entity questions using `GraphRAGSystem` over Neo4j.
+- The supervisor decides which agent to call per user message based on intent (generate, summarize, sentiment, verify, RAG QA, etc.).
 
 ### Key Components
-- **Sentence Transformers** (`all-MiniLM-L6-v2`): For semantic text embeddings
-- **Pre-trained ML Classifier**: For initial prediction
-- **LangChain + OpenAI GPT-4**: For intelligent web-based verification
-- **Hybrid Decision Logic**: Combines ML predictions with real-time web verification
+- **Sentence Transformers** (`all-MiniLM-L6-v2`): For semantic text embeddings.
+- **Pre-trained ML Classifier**: For initial fake-news prediction.
+- **LangChain + OpenAI GPT-4o-mini**: For web verification, analysis, and RAG reasoning.
+- **Hybrid Decision Logic**: Combines ML predictions, web verification, and RAG context for richer explanations.
 
 ## 🤝 Contributing
 

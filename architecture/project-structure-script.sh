@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Agentic News Bot - Project Structure Setup Script
-# This script creates the complete directory structure and placeholder files
 
 echo "🚀 Creating Agentic News Bot project structure..."
 
